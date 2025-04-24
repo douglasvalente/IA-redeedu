@@ -1,0 +1,11 @@
+# Dependências do Node.js
+node_modules/
+
+# Arquivos de log
+*.log
+
+# Cache do Python
+__pycache__/
+
+# Configurações do editor
+.vscode/

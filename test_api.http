@@ -1,0 +1,7 @@
+POST http://127.0.0.1:5000/chat
+Content-Type: application/json
+
+{
+  "message": "Olá, gostaria de saber mais sobre os cursos.",
+  "conversation": []
+}

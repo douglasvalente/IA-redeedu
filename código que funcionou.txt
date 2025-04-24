@@ -1,0 +1,71 @@
+import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import openai
+
+# Inicializa Flask e habilita CORS
+app = Flask(__name__)
+CORS(app)  # permite que o Chrome extension faça fetch para este backend
+
+# Configure sua chave de API (assegure-se que a variável OPENAI_API_KEY esteja definida)
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+SYSTEM_PROMPT = """
+Meu prompt é esse...
+"""
+
+@app.route('/upload', methods=['POST'])
+def upload_knowledge():
+    # Garante que a pasta exista
+    upload_dir = os.path.join(os.getcwd(), 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    if 'knowledge' not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+
+    file = request.files['knowledge']
+    save_path = os.path.join(upload_dir, file.filename)
+    file.save(save_path)
+    return jsonify({"status": "ok", "filename": file.filename}), 200
+
+# --- Novo endpoint: pausar o bot ---
+@app.route('/pause', methods=['POST'])
+def pause_bot():
+    # Aqui você pode sinalizar sua lógica interna de pausa
+    # Por enquanto só retorna OK
+    return jsonify({"status": "paused"}), 200
+
+# --- Novo endpoint: retomar o bot ---
+@app.route('/resume', methods=['POST'])
+def resume_bot():
+    # Aqui você pode sinalizar sua lógica interna de retomada
+    return jsonify({"status": "resumed"}), 200
+
+# --- Endpoint de conversação com o OpenAI ---
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    # se veio prompt pelo JSON, use-o, senão use o default
+    system_text = data.get('prompt', SYSTEM_PROMPT)
+    user_message = data.get('message', '')
+    conversation = data.get('conversation', [])
+
+    # monta mensagens
+    messages = [{"role":"system","content":system_text}]
+    messages += conversation
+    messages.append({"role":"user","content":user_message})
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4.1-nano",
+            messages=messages,
+            temperature=0.7
+        )
+        answer = response.choices[0].message.content
+        return jsonify({"response": answer}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    # roda em http://127.0.0.1:5000
+    app.run(host="127.0.0.1", port=5000, debug=True)
